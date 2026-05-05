@@ -2,16 +2,23 @@
   "name": "tfjs-rtx5070",
   "version": "1.0.0",
   "description": "TensorFlow.js GPU compute optimised for RTX 5070 (Blackwell sm_120)",
-  "main": "src/index.js",
+  "type": "module",
+  "main": "dist/index.js",
   "scripts": {
-    "benchmark": "node src/benchmark.js",
-    "demo": "node src/demo.js",
-    "setup": "bash setup-project.sh"
+    "benchmark": "tsx src/benchmark.ts",
+    "demo":      "tsx src/demo.ts",
+    "build":     "tsc",
+    "setup":     "bash setup-project.sh"
   },
   "dependencies": {
-    "@tensorflow/tfjs-node-gpu": "^4.22.0",
-    "@tensorflow/tfjs-core": "^4.22.0",
-    "@tensorflow/tfjs-layers": "^4.22.0"
+    "@tensorflow/tfjs-core":    "^4.22.0",
+    "@tensorflow/tfjs-layers":  "^4.22.0",
+    "@tensorflow/tfjs-node-gpu": "^4.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsx":         "^4.21.0",
+    "typescript":  "^6.0.3"
   },
   "engines": {
     "node": ">=20"
