@@ -10,8 +10,6 @@ import { createRequire } from 'module';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
 const SM120_URL = 'https://github.com/Constantine7373/tfjs-blackwell/releases/download/v2.15.0-sm120/libtensorflow-sm120-2.15.0-linux-x86_64.tar.gz';
 const PTX_URL   = 'https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-gpu-linux-x86_64-2.15.0.tar.gz';
 const TF_VER    = '2.15.0';
@@ -51,7 +49,11 @@ if (existsSync(MARKER) && readFileSync(MARKER, 'utf8').trim() === expected) {
 
 console.log(`[install-libs] GPU: ${variant === 'sm120' ? 'sm_120 Blackwell (native kernels)' : 'PTX fallback (CUDA 12 JIT)'}`);
 
-// ── download ───────────────────────────────────────────────────────────────
+// ── helpers ────────────────────────────────────────────────────────────────
+function isValidTarball(file) {
+  return spawnSync('tar', ['-tzf', file], { stdio: 'ignore' }).status === 0;
+}
+
 function download(url, dest) {
   const hasWget = spawnSync('wget', ['--version'], { stdio: 'ignore' }).status === 0;
   if (hasWget) {
@@ -63,56 +65,56 @@ function download(url, dest) {
   }
 }
 
-const url    = variant === 'sm120' ? SM120_URL : PTX_URL;
-const tmpFile = `/tmp/libtensorflow-${variant}-${TF_VER}.tar.gz`;
-
-function isValidTarball(file) {
-  return spawnSync('gzip', ['-t', file], { stdio: 'ignore' }).status === 0;
+function ensureTarball(url, dest) {
+  if (existsSync(dest) && isValidTarball(dest)) {
+    console.log('[install-libs] Using cached tarball.');
+    return;
+  }
+  if (existsSync(dest)) {
+    console.log('[install-libs] Cached tarball is corrupted — re-downloading...');
+    unlinkSync(dest);
+  }
+  download(url, dest);
 }
 
+// ── resolve which tarball to use ───────────────────────────────────────────
+const sm120Tmp = `/tmp/libtensorflow-sm120-${TF_VER}.tar.gz`;
+const ptxTmp   = `/tmp/libtensorflow-ptx-${TF_VER}.tar.gz`;
+
+let resolvedTmp     = variant === 'sm120' ? sm120Tmp : ptxTmp;
+let resolvedUrl     = variant === 'sm120' ? SM120_URL : PTX_URL;
+let resolvedVariant = variant;
+
 try {
-  if (existsSync(tmpFile)) {
-    if (isValidTarball(tmpFile)) {
-      console.log('[install-libs] Using cached tarball.');
-    } else {
-      console.log('[install-libs] Cached tarball is corrupted — re-downloading...');
-      unlinkSync(tmpFile);
-      download(url, tmpFile);
-    }
-  } else {
-    download(url, tmpFile);
-  }
+  ensureTarball(resolvedUrl, resolvedTmp);
 } catch (e) {
-  if (variant === 'sm120') {
-    console.warn(`[install-libs] sm_120 download failed: ${e.message}`);
-    console.warn('[install-libs] Falling back to PTX build...');
-    const ptxTmp = `/tmp/libtensorflow-ptx-${TF_VER}.tar.gz`;
-    if (!existsSync(ptxTmp) || !isValidTarball(ptxTmp)) download(PTX_URL, ptxTmp);
-    extractAndLink(ptxTmp, 'ptx');
-  } else {
+  if (variant !== 'sm120') {
     console.error(`[install-libs] Download failed: ${e.message}`);
     process.exit(1);
   }
+  console.warn(`[install-libs] sm_120 download failed: ${e.message}`);
+  console.warn('[install-libs] Falling back to PTX build...');
+  try {
+    ensureTarball(PTX_URL, ptxTmp);
+  } catch (e2) {
+    console.error(`[install-libs] PTX fallback also failed: ${e2.message}`);
+    process.exit(1);
+  }
+  resolvedTmp     = ptxTmp;
+  resolvedVariant = 'ptx';
 }
-
-extractAndLink(tmpFile, variant);
 
 // ── extract + symlink ──────────────────────────────────────────────────────
 function extractAndLink(tarball, resolvedVariant) {
   mkdirSync(DEPS_LIB, { recursive: true });
 
-  const probe  = spawnSync('tar', ['-tzf', tarball], { encoding: 'utf8' });
-  const files  = probe.stdout.trim().split('\n');
-  const strip  = files.some(f => f.startsWith('lib/libtensorflow')) ? ['--strip-components=1'] : [];
+  const probe = spawnSync('tar', ['-tzf', tarball], { encoding: 'utf8' });
+  const strip = probe.stdout.split('\n').some(f => f.startsWith('lib/libtensorflow'))
+    ? ['--strip-components=1']
+    : [];
 
-  const r = spawnSync(
-    'tar', ['-xzf', tarball, '-C', DEPS_LIB, ...strip, '--wildcards', 'libtensorflow*.so*'],
-    { stdio: 'inherit' },
-  );
-  if (r.status !== 0) {
-    const r2 = spawnSync('tar', ['-xzf', tarball, '-C', DEPS_LIB, ...strip], { stdio: 'inherit' });
-    if (r2.status !== 0) throw new Error('tar extraction failed');
-  }
+  const r = spawnSync('tar', ['-xzf', tarball, '-C', DEPS_LIB, ...strip], { stdio: 'inherit' });
+  if (r.status !== 0) throw new Error('tar extraction failed');
 
   const links = [
     ['libtensorflow.so',             `libtensorflow.so.${TF_VER}`],
@@ -130,3 +132,5 @@ function extractAndLink(tarball, resolvedVariant) {
   writeFileSync(MARKER, `${TF_VER}-${resolvedVariant}`);
   console.log(`[install-libs] Done. libtensorflow ${TF_VER} (${resolvedVariant}) installed.`);
 }
+
+extractAndLink(resolvedTmp, resolvedVariant);

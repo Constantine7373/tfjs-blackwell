@@ -1,6 +1,6 @@
 {
   "name": "@constantine7373/tensorflow-sm120",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "TensorFlow.js GPU with native sm_120 (Blackwell) kernels — drop-in replacement for @tensorflow/tfjs-node-gpu",
   "type": "module",
   "main": "dist/index.js",
@@ -16,18 +16,18 @@
     "scripts/"
   ],
   "scripts": {
-    "build":       "tsc",
+    "build": "tsc",
     "postinstall": "node scripts/install-libs.mjs"
   },
   "dependencies": {
-    "@tensorflow/tfjs-core":     "^4.22.0",
-    "@tensorflow/tfjs-layers":   "^4.22.0",
+    "@tensorflow/tfjs-core": "^4.22.0",
+    "@tensorflow/tfjs-layers": "^4.22.0",
     "@tensorflow/tfjs-node-gpu": "^4.22.0"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
-    "tsx":         "^4.21.0",
-    "typescript":  "^6.0.3"
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3"
   },
   "engines": {
     "node": ">=20"
