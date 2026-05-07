@@ -1,18 +1,27 @@
 {
-  "name": "tfjs-rtx5070",
+  "name": "@constantine7373/tensorflow-sm120",
   "version": "1.0.0",
-  "description": "TensorFlow.js GPU compute optimised for RTX 5070 (Blackwell sm_120)",
+  "description": "TensorFlow.js GPU with native sm_120 (Blackwell) kernels — drop-in replacement for @tensorflow/tfjs-node-gpu",
   "type": "module",
   "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Constantine7373/tfjs-blackwell.git"
+  },
+  "files": [
+    "dist/",
+    "scripts/"
+  ],
   "scripts": {
-    "benchmark": "tsx src/benchmark.ts",
-    "demo":      "tsx src/demo.ts",
-    "build":     "tsc",
-    "setup":     "bash setup-project.sh"
+    "build":       "tsc",
+    "postinstall": "node scripts/install-libs.mjs"
   },
   "dependencies": {
-    "@tensorflow/tfjs-core":    "^4.22.0",
-    "@tensorflow/tfjs-layers":  "^4.22.0",
+    "@tensorflow/tfjs-core":     "^4.22.0",
+    "@tensorflow/tfjs-layers":   "^4.22.0",
     "@tensorflow/tfjs-node-gpu": "^4.22.0"
   },
   "devDependencies": {
